@@ -41,12 +41,14 @@ def get_proposals() -> dict[int, str]:
     return {i: f"{p.name} with {p.votes} votes!" for i, p in enumerate(proposals)}
 
 
-@tool("supermultiply", args_schema=CalculatorInput, return_direct=True)
-def supermultiply(a: int, b: int) -> float:
+@tool("vote_proposal", return_direct=False)
+def vote_proposal(index: int) -> None:
     """
-    Supermultiply two numbers.
+    Vote for a proposal given the index stored in the contract
+    Returns: None
     """
-    return (2 * a) / (b + 10)
+    tx_hash = vote_contract.functions.vote(index).transact()
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
 
 def multi_turn(
@@ -75,11 +77,13 @@ def multi_turn(
 
 def custom_tool(model: ChatAnthropic, tools: list[Any]):
     agent_executor = create_react_agent(model, tools)
-    for chunk in agent_executor.stream(
-        {"messages": [HumanMessage(content="what is the supermultiply of 2 and 3??")]},
-        stream_mode="messages",
-    ):
-        print(chunk)
+    while True:
+        user_input = input("Q: ")
+        for chunk in agent_executor.stream(
+            {"messages": [HumanMessage(content=user_input)]},
+            stream_mode="messages",
+        ):
+            print(chunk)
 
 
 def weather(model: ChatAnthropic, tools: list[TavilySearchResults]):
@@ -112,7 +116,7 @@ def main():
     if parsed_args.memory:
         multi_turn(model, tools, memory)
     if parsed_args.custom:
-        custom_tool(model, tools + [supermultiply])
+        custom_tool(model, tools + [get_proposals, vote_proposal])
 
 
 if __name__ == "__main__":

@@ -7,6 +7,8 @@ from web3.eth import Contract
 from web3 import Web3
 from solcx import compile_source
 
+PROPOSALS = ["hello", "world", "sigmaboy"]
+
 
 class Proposal(BaseModel):
     name: str = Field(description="name of the proposal")
@@ -43,7 +45,7 @@ def voting_contract(w3: Web3) -> Contract:
     example_byt = contract_iface["bin"]
     example_contract = w3.eth.contract(abi=example_abi, bytecode=example_byt)
     tx_hash = example_contract.constructor(
-        proposalNames=[str2bytes32("hello"), str2bytes32("world")]
+        proposalNames=[str2bytes32(s) for s in PROPOSALS]
     ).transact()
     tx_receipt: Any = w3.eth.wait_for_transaction_receipt(tx_hash)
     return w3.eth.contract(address=tx_receipt.contractAddress, abi=example_abi)
