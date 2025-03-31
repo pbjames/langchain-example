@@ -1,5 +1,4 @@
 from typing import Any, Final
-from uuid import UUID
 from langchain_anthropic import ChatAnthropic
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import AIMessageChunk, HumanMessage
@@ -8,12 +7,20 @@ from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from dotenv import load_dotenv
+from web3 import Web3, EthereumTesterProvider
 
 from argparse import ArgumentParser
 
 from pydantic import BaseModel, Field
 
-MODEL_NAME: Final[str] = "claude-3-7-sonnet-20250219"
+from langchain_example.const import MODEL_NAME
+from langchain_example.contracts import Proposal, proposal_conversion, voting_contract
+
+global w3
+global vote_contract
+
+w3 = Web3(EthereumTesterProvider())
+vote_contract = voting_contract(w3)
 
 
 class CalculatorInput(BaseModel):
@@ -21,9 +28,24 @@ class CalculatorInput(BaseModel):
     b: int = Field(description="second number")
 
 
+@tool("get_proposals", return_direct=False)
+def get_proposals() -> dict[int, str]:
+    """
+    Get proposals from the smart contract
+    Returns: dictionary key pairs of proposal indexes and name and vote counts
+    """
+    raw_proposals: list[tuple[bytes, int]] = (
+        vote_contract.functions.getProposals().call()
+    )
+    proposals = [proposal_conversion(p) for p in raw_proposals]
+    return {i: f"{p.name} with {p.votes} votes!" for i, p in enumerate(proposals)}
+
+
 @tool("supermultiply", args_schema=CalculatorInput, return_direct=True)
 def supermultiply(a: int, b: int) -> float:
-    """Supermultiply two numbers."""
+    """
+    Supermultiply two numbers.
+    """
     return (2 * a) / (b + 10)
 
 
@@ -34,8 +56,8 @@ def multi_turn(
     config = RunnableConfig(
         configurable={"thread_id": "08c55a1c-eddd-40e6-9979-593e0326ad7b"}
     )
-    step: AIMessageChunk
-    metadata: dict[Any, Any]
+    step: Any
+    metadata: Any
     for step, metadata in agent_executor.stream(
         {"messages": [HumanMessage(content="hi im bob!")]},
         stream_mode="messages",

@@ -13,10 +13,17 @@ dependencies = [
   "langchain-community (>=0.3.20,<0.4.0)",
   "langchain-core (>=0.3.49,<0.4.0)",
   "pydantic (>=2.11.1,<3.0.0)",
+  "web3 (>=7.10.0,<8.0.0)",
+  "eth-tester (>=0.12.1b1,<0.13.0)",
+  "py-evm (>=0.11.0b1,<0.12.0)",
+  "py-solc-x (>=2.0.3,<3.0.0)",
 ]
 
 [tool.poetry]
 packages = [{ include = "langchain_example", from = "src" }]
+
+[tool.poetry.scripts]
+main = "src.langchain_example.main:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
